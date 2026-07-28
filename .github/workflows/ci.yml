@@ -1,0 +1,63 @@
+name: ci
+
+# Install the formula on every platform it claims to support, on every push.
+#
+# This is the only place the macOS install path gets exercised: the release
+# machine has an Xcode older than the minimum Homebrew requires for a source
+# formula, so `brew install` and `brew audit` refuse to run there and cannot
+# be tested by hand before a release goes out.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # A formula can rot without anyone touching it, e.g. if a release asset is
+  # deleted or replaced. Catch that on a schedule rather than from a bug report.
+  schedule:
+    - cron: "37 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-13, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Tap this checkout
+        run: |
+          set -euo pipefail
+          tap=$(brew --repository)/Library/Taps/nzbfast/homebrew-tap
+          mkdir -p "$(dirname "$tap")"
+          ln -s "$GITHUB_WORKSPACE" "$tap"
+          brew tap
+
+      - name: Style
+        run: brew style nzbfast/tap/nzbfast
+
+      - name: Audit
+        run: brew audit --strict --online nzbfast/tap/nzbfast
+
+      - name: Install
+        run: brew install --verbose nzbfast/tap/nzbfast
+
+      # Not just `brew test`: prove the installed binary is the version the
+      # formula claims, on this architecture. A universal or wrong-arch binary
+      # that unpacks fine but cannot execute fails right here.
+      - name: Run it
+        run: |
+          set -euo pipefail
+          nzbfast --version
+          declared=$(brew info --json=v2 nzbfast/tap/nzbfast \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["formulae"][0]["versions"]["stable"])')
+          nzbfast --version | grep -qw "$declared"
+          echo "ok: running $declared on $(uname -m)"
+
+      - name: Test
+        run: brew test --verbose nzbfast/tap/nzbfast
