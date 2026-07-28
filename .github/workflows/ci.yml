@@ -28,6 +28,11 @@ jobs:
         os: [macos-latest, macos-13, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      # Ubuntu runners no longer have Homebrew on PATH, so this is what makes
+      # `brew` exist on Linux rather than a nicety. It also puts macOS on a
+      # current Homebrew instead of whatever the image shipped with.
+      - uses: Homebrew/actions/setup-homebrew@master
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Tap this checkout

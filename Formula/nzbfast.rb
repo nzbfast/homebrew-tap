@@ -1,8 +1,11 @@
 # Homebrew formula for nzbfast (brew install nzbfast/tap/nzbfast).
 #
 # THIS FILE IS THE SOURCE OF TRUTH. packaging/homebrew/bump-tap.sh rewrites
-# the version and the three sha256 lines at release time and pushes a copy to
+# the download URLs and the sha256 lines at release time and pushes a copy to
 # the public tap repo (nzbfast/homebrew-tap). Edit here, never in the tap.
+# It rewrites only lines carrying a release-download URL and the sha256 line
+# under each, so do not put a version number anywhere else in this file: it
+# would not be updated and would rot.
 #
 # It points at the same archives a person downloads by hand from the release
 # page, on purpose. The per-target-triple tarballs on the same release come
@@ -13,7 +16,6 @@
 class Nzbfast < Formula
   desc "Fast Usenet (NZB) downloader with one-pass verify, repair and extract"
   homepage "https://github.com/nzbfast/nzbfast"
-  version "1.0.10"
   license "GPL-3.0-or-later"
 
   livecheck do
@@ -21,31 +23,39 @@ class Nzbfast < Formula
     strategy :github_latest
   end
 
-  # `version` above is load-bearing and not redundant: Homebrew scans a
-  # version out of the URL when one is not declared, and these filenames make
-  # it read "64" out of "-x64"/"-arm64" and install to Cellar/nzbfast/64.
+  # There is deliberately no `version` stanza. Homebrew derives the version
+  # from the URL, and every URL here is written so that it derives the right
+  # one. Declaring it as well is what `brew audit` calls redundant, and that
+  # fails the audit on macOS.
+  #
+  # The `#/...` suffixes on the Linux URLs are load-bearing, not decoration.
+  # Homebrew parses a `...-linux-x64.tar.gz` filename as version **64**, off
+  # the `-x64`, and would install to Cellar/nzbfast/64. The fragment renames
+  # the download locally (curl never sends it) and is what the version parser
+  # reads, so it puts the version last where nothing can be mistaken for it.
+  # macOS needs no fragment: `-macos-universal.zip` parses correctly already.
   #
   # macOS ships one universal binary rather than a per-architecture build, so
   # both arches point at the same archive. It has to be spelled out per arch
   # because `on_macos` itself may not contain a `url`.
   on_macos do
     on_arm do
-      url "https://github.com/nzbfast/nzbfast/releases/download/v#{version}/nzbfast-#{version}-macos-universal.zip"
+      url "https://github.com/nzbfast/nzbfast/releases/download/v1.0.10/nzbfast-1.0.10-macos-universal.zip"
       sha256 "8734b4373c0844d3d6b3279868a9e26dacb20b4af82dbb2b7e7760c417ceb197"
     end
     on_intel do
-      url "https://github.com/nzbfast/nzbfast/releases/download/v#{version}/nzbfast-#{version}-macos-universal.zip"
+      url "https://github.com/nzbfast/nzbfast/releases/download/v1.0.10/nzbfast-1.0.10-macos-universal.zip"
       sha256 "8734b4373c0844d3d6b3279868a9e26dacb20b4af82dbb2b7e7760c417ceb197"
     end
   end
 
   on_linux do
     on_intel do
-      url "https://github.com/nzbfast/nzbfast/releases/download/v#{version}/nzbfast-#{version}-linux-x64.tar.gz"
+      url "https://github.com/nzbfast/nzbfast/releases/download/v1.0.10/nzbfast-1.0.10-linux-x64.tar.gz#/nzbfast-linux-x64-1.0.10.tar.gz"
       sha256 "25b69dfff10585fa678cde876013361626e9a6ce5791776d68e6f99595cc23dd"
     end
     on_arm do
-      url "https://github.com/nzbfast/nzbfast/releases/download/v#{version}/nzbfast-#{version}-linux-arm64.tar.gz"
+      url "https://github.com/nzbfast/nzbfast/releases/download/v1.0.10/nzbfast-1.0.10-linux-arm64.tar.gz#/nzbfast-linux-arm64-1.0.10.tar.gz"
       sha256 "e36fc60a2ba41a7602a18a708c0eb162e2d6857382d51bfba92abb200f6d4e0d"
     end
   end
