@@ -70,3 +70,56 @@ jobs:
 
       - name: Test
         run: brew test --verbose nzbfast/tap/nzbfast
+
+  # The likeliest way this breaks for users is not a broken formula, it is a
+  # correct formula nobody bumped: the release ships, bump-tap.sh never runs,
+  # and `brew upgrade` keeps answering "already up to date" while the app's own
+  # updater is telling the same person a new version exists. Nothing errors, so
+  # it surfaces as a confused bug report weeks later rather than as a gap
+  # anyone noticed. The weekly run is here to notice it instead.
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Homebrew/actions/setup-homebrew@master
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Tap this checkout
+        run: |
+          set -euo pipefail
+          tap=$(brew --repository)/Library/Taps/nzbfast/homebrew-tap
+          mkdir -p "$(dirname "$tap")"
+          ln -s "$GITHUB_WORKSPACE" "$tap"
+
+      - name: Formula must match the latest release
+        env:
+          # Anonymous GitHub API calls are rate-limited hard enough to fail on
+          # a busy runner, and a rate-limited livecheck reports no new version.
+          HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          brew livecheck --json --formula nzbfast/tap/nzbfast > livecheck.json
+          cat livecheck.json
+          # Parsed as JSON, not scraped from the human output: `brew livecheck`
+          # exits 0 whether it found a newer version, found nothing, or failed
+          # outright, so the exit code carries no signal at all. This fails
+          # closed, treating "could not determine a version" as a failure
+          # rather than as good news.
+          python3 - <<'PY'
+          import json, sys
+          data = json.load(open("livecheck.json"))
+          if len(data) != 1:
+              sys.exit(f"expected one result from livecheck, got {len(data)}")
+          v = data[0].get("version") or {}
+          current, latest = v.get("current"), v.get("latest")
+          if not current or not latest:
+              sys.exit(f"livecheck could not determine versions "
+                       f"(current={current!r} latest={latest!r}); failing closed")
+          print(f"formula={current}  latest release={latest}")
+          if v.get("outdated"):
+              sys.exit(f"TAP IS STALE: the formula installs {current} but the "
+                       f"latest release is {latest}. Homebrew users are stuck on "
+                       f"{current}. Fix: run packaging/homebrew/bump-tap.sh --push "
+                       f"from the nzbfast repo.")
+          print("ok: the tap serves the latest release")
+          PY
