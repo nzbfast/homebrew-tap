@@ -25,7 +25,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, macos-13, ubuntu-latest]
+        # macos-15-intel, not macos-13: the macos-13 label was retired, and a
+        # job asking for it does not fail, it queues forever. Both macOS legs
+        # pull the same universal archive, so the Intel leg is specifically
+        # there to prove the x86_64 slice executes.
+        os: [macos-latest, macos-15-intel, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       # Ubuntu runners no longer have Homebrew on PATH, so this is what makes
