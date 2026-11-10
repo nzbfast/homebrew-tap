@@ -35,7 +35,10 @@ jobs:
       # Ubuntu runners no longer have Homebrew on PATH, so this is what makes
       # `brew` exist on Linux rather than a nicety. It also puts macOS on a
       # current Homebrew instead of whatever the image shipped with.
-      - uses: Homebrew/actions/setup-homebrew@master
+      # Pinned to a commit like the other actions here. It was `@master`, and
+      # Homebrew renamed that branch to `main`: from Oct 2026 every job died in
+      # "Set up job" before brew ran, so the formula went untested for weeks.
+      - uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29 # main
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -80,7 +83,10 @@ jobs:
   freshness:
     runs-on: ubuntu-latest
     steps:
-      - uses: Homebrew/actions/setup-homebrew@master
+      # Pinned to a commit like the other actions here. It was `@master`, and
+      # Homebrew renamed that branch to `main`: from Oct 2026 every job died in
+      # "Set up job" before brew ran, so the formula went untested for weeks.
+      - uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29 # main
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
